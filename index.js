@@ -1,46 +1,53 @@
 const express = require('express');
-const { createServer } = require('http');
-const { join } = require('path');
-const { Server } = require('socket.io');
+const http = require('http');
+const socketIo = require('socket.io');
+const mongoose = require('mongoose');
 
 const app = express();
-const server = createServer(app);
-const io = new Server(server);
+const server = http.createServer(app);
+const io = socketIo(server);
 
-app.get('/', (req, res) => {
-  res.sendFile(join(__dirname, 'index.html'));
+mongoose.connect('mongodb://localhost/chat', {
 });
 
-io.on('connection', (socket) => {
-  console.log('User connected');
-  
-  let nickname = 'Anonymous';
+const messageSchema = new mongoose.Schema({
+    user: String,
+    message: String,
+    timestamp: { type: Date, default: Date.now },
+});
 
-  socket.on('set nickname', (name) => {
-    nickname = name;
-    socket.broadcast.emit('chat message', `${nickname} connected`);
-    console.log(`${nickname} connected`);
-  });
+const Message = mongoose.model('Message', messageSchema);
 
-  socket.on('chat message', (msg) => {
-    console.log('message: ' + msg);
-    io.emit('chat message', `${nickname}: ${msg}`);
-  });
+io.on('connection', async (socket) => {
+    console.log('New client connected');
 
-  socket.on('typing', () => {
-    socket.broadcast.emit('typing', nickname);
-  });
+    // Send existing messages to the client
+    try {
+        const messages = await Message.find().sort({ timestamp: 1 }).exec();
+        socket.emit('init', messages);
+    } catch (err) {
+        console.error(err);
+    }
 
-  socket.on('stop typing', () => {
-    socket.broadcast.emit('stop typing');
-  });
+    socket.on('message', async (data) => {
+        const newMessage = new Message(data);
+        try {
+            await newMessage.save();
+            io.emit('message', data);
+        } catch (err) {
+            console.error(err);
+        }
+    });
 
-  socket.on('disconnect', () => {
-    console.log('User disconnected');
-    io.emit('chat message', `${nickname} disconnected`);
-  });
+    socket.on('disconnect', () => {
+        console.log('Client disconnected');
+    });
+});
+
+app.get('/', (req, res) => {
+    res.sendFile(__dirname + '/index.html');
 });
 
 server.listen(3000, () => {
-  console.log('Server running at http://localhost:3000');
+    console.log('Server is running on port 3000');
 });

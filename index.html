@@ -1,118 +1,50 @@
+<!-- index.html -->
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Socket.IO chat</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat App</title>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 0;
-            display: flex;
-            flex-direction: column;
-            height: 100vh;
-            background-color: #f0f0f0;
-        }
-        #messages {
-            list-style-type: none;
-            margin: 0;
-            padding: 20px;
-            flex: 1;
-            overflow-y: auto;
-            background-color: white;
-            border-radius: 10px;
-            margin: 20px;
-            box-shadow: 0 0 10px rgba(0,0,0,0.1);
-        }
-        #messages li {
-            padding: 10px;
-            background-color: #e6e6e6;
-            border-radius: 5px;
-            margin-bottom: 10px;
-        }
-        #typing {
-            margin: 0 20px;
-            padding: 10px;
-            font-style: italic;
-            color: #666;
-        }
-        #chat-form {
-            background: #fff;
-            padding: 20px;
-            display: flex;
-            box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
-        }
-        #m {
-            flex-grow: 1;
-            border: none;
-            padding: 10px;
-            font-size: 16px;
-            border-radius: 5px 0 0 5px;
-            outline: none;
-        }
-        #chat-form button {
-            background: #4CAF50;
-            border: none;
-            padding: 10px 20px;
-            color: white;
-            font-size: 16px;
-            cursor: pointer;
-            border-radius: 0 5px 5px 0;
-            transition: background 0.3s ease;
-        }
-        #chat-form button:hover {
-            background: #45a049;
-        }
+        #chat { height: 300px; overflow-y: scroll; border: 1px solid #ccc; margin-bottom: 10px; }
+        #message { width: 80%; }
+        #send { width: 18%; }
     </style>
 </head>
 <body>
-    <ul id="messages"></ul>
-    <div id="typing"></div>
-    <form id="chat-form" action="">
-        <input id="m" autocomplete="off" /><button>Send</button>
-    </form>
+    <div id="chat"></div>
+    <input id="message" type="text" placeholder="Type a message...">
+    <button id="send">Send</button>
 
     <script src="/socket.io/socket.io.js"></script>
     <script>
         const socket = io();
-        const typingIndicator = document.getElementById('typing');
-        const inputField = document.getElementById('m');
-        let typingTimeout;
+        const chat = document.getElementById('chat');
+        const message = document.getElementById('message');
+        const send = document.getElementById('send');
 
-        const nickname = prompt('Please enter your nickname:');
-        socket.emit('set nickname', nickname);
-
-        socket.on('chat message', (msg) => {
-            const li = document.createElement('li');
-            li.textContent = msg;
-            document.getElementById('messages').appendChild(li);
-            typingIndicator.textContent = '';
+        // to receive the datafrom MongoDB as the objects
+        socket.on('init', (messages) => {
+            // iterate the item of the object with addMessage function
+            messages.forEach(addMessage);
         });
 
-        socket.on('typing', (nickname) => {
-            typingIndicator.textContent = `${nickname} is typing...`;
+        socket.on('message', (data) => {
+            addMessage(data);
         });
 
-        socket.on('stop typing', () => {
-            typingIndicator.textContent = '';
+        send.addEventListener('click', () => {
+            const msg = { user: 'User', message: message.value };
+            socket.emit('message', msg);
+            message.value = '';
         });
 
-        document.getElementById('chat-form').addEventListener('submit', (e) => {
-            e.preventDefault();
-            const input = inputField.value;
-            if (input) {
-                socket.emit('chat message', input);
-                inputField.value = '';
-                socket.emit('stop typing');
-            }
-        });
-
-        inputField.addEventListener('input', () => {
-            socket.emit('typing');
-            clearTimeout(typingTimeout);
-            typingTimeout = setTimeout(() => {
-                socket.emit('stop typing');
-            }, 1000);
-        });
+        function addMessage(data) {
+            const msg = document.createElement('div');
+            msg.textContent = `${data.user}: ${data.message}`;
+            chat.appendChild(msg);
+            chat.scrollTop = chat.scrollHeight;
+        }
     </script>
 </body>
 </html>

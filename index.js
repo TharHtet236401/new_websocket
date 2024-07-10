@@ -1,22 +1,10 @@
 const express = require('express');
 const http = require('http');
 const socketIo = require('socket.io');
-const mongoose = require('mongoose');
-
 const app = express();
 const server = http.createServer(app);
 const io = socketIo(server);
-
-mongoose.connect('mongodb://localhost/chat', {  });
-
-const messageSchema = new mongoose.Schema({
-    user: String,
-    message: String,
-    image: String, 
-    timestamp: { type: Date, default: Date.now }
-});
-
-const Message = mongoose.model('Message', messageSchema);
+const Message = require('./db');
 
 io.on('connection', async (socket) => {
     let nickname = "anonymous";

@@ -1,6 +1,7 @@
 // message.js
 const mongoose = require('mongoose');
 mongoose.connect('mongodb://localhost/chat', {  });
+
 const messageSchema = new mongoose.Schema({
     user: String,
     message: String,

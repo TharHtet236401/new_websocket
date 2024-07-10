@@ -1,60 +1,16 @@
 const express = require('express');
 const http = require('http');
-const socketIo = require('socket.io');
 const app = express();
 const server = http.createServer(app);
-const io = socketIo(server);
-const Message = require('./db');
+const initSocket = require('./modules/socket');
+const routes = require('./modules/routes');
+const path = require('path');
 
-io.on('connection', async (socket) => {
-    let nickname = "anonymous";
+app.use(express.static(path.join(__dirname, 'public')));
 
-    // Handle the nickname event to set the user's nickname
-    socket.on('nickname', (data) => {
-        nickname = data;
-        socket.broadcast.emit('welcome', `${nickname} joined the chat`);
-    });
+initSocket(server);
 
-    socket.on('disconnect', () => {
-        socket.broadcast.emit('bye', `${nickname} left the chat`);
-    });
-
-    // Send existing messages to the client
-    try {
-        const messages = await Message.find().sort({ timestamp: 1 }).exec();
-        socket.emit('init', messages);
-    } catch (err) {
-        console.error(err);
-    }
-
-    // Handle new message from the client
-    socket.on('message', async (data) => {
-        const newMessage = new Message({
-            user: data.user,
-            message: data.message || '',
-            image: data.image || ''
-        });
-        try {
-            await newMessage.save();
-            io.emit('message', data);
-        } catch (err) {
-            console.error(err);
-        }
-    });
-
-    // Handle typing events
-    socket.on('typing', () => {
-        socket.broadcast.emit('typing', nickname);
-    });
-
-    socket.on('stop typing', () => {
-        socket.broadcast.emit('stop typing');
-    });
-});
-
-app.get('/', (req, res) => {
-    res.sendFile(__dirname + '/index.html');
-});
+app.use('/', routes);
 
 server.listen(3000, () => {
     console.log('Server is running on port 3000');

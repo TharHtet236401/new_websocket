@@ -86,41 +86,38 @@
         const message = document.getElementById('message');
         const send = document.getElementById('send');
 
-        let person = prompt("Please enter your name");
+        let nickname = prompt("Please enter your nickname");
         
+        // Send the nickname to the server
+        socket.emit('nickname', nickname);
 
         // Receive the initial chat history from the server
         socket.on('init', (messages) => {
             messages.forEach(addMessage);
-            
         });
 
-        console.log(person);
         // Receive a new message from the server
         socket.on('message', (data) => {
             addMessage(data);
         });
 
-        socket.emit("person",person);
-
-        socket.on("welcome",(data)=>{
+        socket.on("welcome", (data) => {
             const msg = document.createElement('div');
-            msg.classList.add('chat-message');
-            msg.classList.add('welcome');
+            msg.classList.add('chat-message', 'welcome');
             msg.textContent = data;
             chat.appendChild(msg);
-        })
+        });
 
-        socket.on("bye",(data)=>{
+        socket.on("bye", (data) => {
             const msg = document.createElement('div');
-            msg.classList.add('chat-message','bye');
+            msg.classList.add('chat-message', 'bye');
             msg.textContent = data;
             chat.appendChild(msg);
-        })
+        });
 
         // Send a new message to the server
         send.addEventListener('click', () => {
-            const msg = { user: 'User', message: message.value };
+            const msg = { user: nickname, message: message.value };
             socket.emit('message', msg);
             message.value = '';
         });

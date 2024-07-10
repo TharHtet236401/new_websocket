@@ -7,9 +7,7 @@ const app = express();
 const server = http.createServer(app);
 const io = socketIo(server);
 
-mongoose.connect('mongodb://localhost/chat', {
-   
-});
+mongoose.connect('mongodb://localhost/chat', );
 
 const messageSchema = new mongoose.Schema({
     user: String,
@@ -20,18 +18,18 @@ const messageSchema = new mongoose.Schema({
 const Message = mongoose.model('Message', messageSchema);
 
 io.on('connection', async (socket) => {
-    
-    let person = "anonymous";
+    let nickname = "anonymous";
 
-    socket.on("person",data=>{
-        person = data;
-        socket.broadcast.emit("welcome", person + " joined the chat");
-    })
+    // Handle the nickname event to set the user's nickname
+    socket.on('nickname', (data) => {
+        nickname = data;
+        socket.broadcast.emit('welcome', `${nickname} joined the chat`);
+    });
 
     socket.on('disconnect', () => {
-        socket.broadcast.emit("bye", person + " Left Chat Room( testing) ");
+        socket.broadcast.emit('bye', `${nickname} left the chat`);
     });
-    
+
     // Send existing messages to the client
     try {
         const messages = await Message.find().sort({ timestamp: 1 }).exec();
@@ -40,11 +38,9 @@ io.on('connection', async (socket) => {
         console.error(err);
     }
 
-    
-
     // Handle new message from the client
     socket.on('message', async (data) => {
-        const newMessage = new Message(data);
+        const newMessage = new Message({ user: data.user, message: data.message });
         try {
             await newMessage.save();
             io.emit('message', data);
@@ -52,8 +48,6 @@ io.on('connection', async (socket) => {
             console.error(err);
         }
     });
-
- 
 });
 
 app.get('/', (req, res) => {

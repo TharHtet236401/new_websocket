@@ -73,6 +73,7 @@
 <body>
     <div class="chat-container">
         <div id="chat"></div>
+        <div id="typing-notification" style="padding: 10px; color: gray;"></div>
         <div class="input-container">
             <input id="message" type="text" placeholder="Type a message...">
             <button id="send">Send</button>
@@ -85,6 +86,7 @@
         const chat = document.getElementById('chat');
         const message = document.getElementById('message');
         const send = document.getElementById('send');
+        const typingNotification = document.getElementById('typing-notification');
 
         let nickname = prompt("Please enter your nickname");
         
@@ -115,11 +117,31 @@
             chat.appendChild(msg);
         });
 
+        // Receive typing notifications
+        socket.on('typing', (data) => {
+            typingNotification.textContent = `${data} is typing...`;
+        });
+
+        socket.on('stop typing', () => {
+            typingNotification.textContent = '';
+        });
+
         // Send a new message to the server
         send.addEventListener('click', () => {
             const msg = { user: nickname, message: message.value };
             socket.emit('message', msg);
             message.value = '';
+            socket.emit('stop typing');
+        });
+
+        // Detect when the user is typing
+        let typingTimeout;
+        message.addEventListener('input', () => {
+            clearTimeout(typingTimeout);
+            socket.emit('typing');
+            typingTimeout = setTimeout(() => {
+                socket.emit('stop typing');
+            }, 1000);
         });
 
         // Add a message to the chat

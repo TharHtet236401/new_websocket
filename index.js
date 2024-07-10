@@ -7,7 +7,7 @@ const app = express();
 const server = http.createServer(app);
 const io = socketIo(server);
 
-mongoose.connect('mongodb://localhost/chat', );
+mongoose.connect('mongodb://localhost/chat', { });
 
 const messageSchema = new mongoose.Schema({
     user: String,
@@ -47,6 +47,15 @@ io.on('connection', async (socket) => {
         } catch (err) {
             console.error(err);
         }
+    });
+
+    // Handle typing events
+    socket.on('typing', () => {
+        socket.broadcast.emit('typing', nickname);
+    });
+
+    socket.on('stop typing', () => {
+        socket.broadcast.emit('stop typing');
     });
 });
 

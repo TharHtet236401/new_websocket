@@ -7,11 +7,12 @@ const app = express();
 const server = http.createServer(app);
 const io = socketIo(server);
 
-mongoose.connect('mongodb://localhost/chat', { });
+mongoose.connect('mongodb://localhost/chat', {  });
 
 const messageSchema = new mongoose.Schema({
     user: String,
     message: String,
+    image: String, 
     timestamp: { type: Date, default: Date.now }
 });
 
@@ -40,7 +41,11 @@ io.on('connection', async (socket) => {
 
     // Handle new message from the client
     socket.on('message', async (data) => {
-        const newMessage = new Message({ user: data.user, message: data.message });
+        const newMessage = new Message({
+            user: data.user,
+            message: data.message || '',
+            image: data.image || ''
+        });
         try {
             await newMessage.save();
             io.emit('message', data);

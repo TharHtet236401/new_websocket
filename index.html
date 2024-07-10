@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Chat App</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.1/css/all.min.css">
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -15,68 +16,89 @@
             margin: 0;
         }
         .chat-container {
-            width: 1000px;
+            width: 100%;
+            max-width: 800px;
             background-color: #fff;
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
             border-radius: 8px;
             overflow: hidden;
+            display: flex;
+            flex-direction: column;
         }
         #chat {
-            height: 300px;
-            overflow-y: scroll;
+            flex-grow: 1;
+            height: 600px;
+            overflow-y: auto;
             border-bottom: 1px solid #ccc;
             padding: 10px;
+            display: flex;
+            flex-direction: column;
         }
         .chat-message {
             margin-bottom: 10px;
             padding: 8px 12px;
-            background-color: #f1f1f1;
+            background-color: #e1f5fe;
             border-radius: 4px;
+            align-self: flex-start;
+            max-width: 80%;
+            white-space: pre-wrap;
         }
-        .chat-message:nth-child(even) {
-            background-color: #e1e1e1;
+        .chat-message.self {
+            background-color: #d0f8ce;
+            align-self: flex-end;
         }
-
-        .welcome{
-            color:green;
+        .welcome, .bye {
+            color: green;
+            text-align: center;
+            font-weight: bold;
+            align-self: center;
         }
-
-        .bye{
-            color:red;
+        .bye {
+            color: red;
         }
-
         .input-container {
             display: flex;
             padding: 10px;
             border-top: 1px solid #ccc;
+            background-color: #f8f8f8;
         }
         #message {
             flex-grow: 1;
             padding: 8px;
             border: 1px solid #ccc;
             border-radius: 4px;
+            margin-right: 10px;
         }
-        #send {
+        #send, #image-button {
             background-color: #007bff;
             color: white;
             border: none;
             border-radius: 4px;
             padding: 8px 16px;
-            margin-left: 10px;
             cursor: pointer;
         }
-        #send:hover {
+        #send:hover, #image-button:hover {
             background-color: #0056b3;
+        }
+        #typing-notification {
+            padding: 10px;
+            color: gray;
+            font-style: italic;
+        }
+        #image {
+            display: none;
         }
     </style>
 </head>
 <body>
     <div class="chat-container">
         <div id="chat"></div>
-        <div id="typing-notification" style="padding: 10px; color: gray;"></div>
+        <div id="typing-notification"></div>
         <div class="input-container">
             <input id="message" type="text" placeholder="Type a message...">
-            <button id="send">Send</button>
+            <button id="send"><i class="fa fa-paper-plane"></i> Send</button>
+            <label for="image" id="image-button"><i class="fa fa-image"></i> Upload</label>
+            <input id="image" type="file" accept="image/*">
         </div>
     </div>
 
@@ -86,19 +108,17 @@
         const chat = document.getElementById('chat');
         const message = document.getElementById('message');
         const send = document.getElementById('send');
+        const imageInput = document.getElementById('image');
         const typingNotification = document.getElementById('typing-notification');
 
         let nickname = prompt("Please enter your nickname");
         
-        // Send the nickname to the server
         socket.emit('nickname', nickname);
 
-        // Receive the initial chat history from the server
         socket.on('init', (messages) => {
             messages.forEach(addMessage);
         });
 
-        // Receive a new message from the server
         socket.on('message', (data) => {
             addMessage(data);
         });
@@ -117,7 +137,6 @@
             chat.appendChild(msg);
         });
 
-        // Receive typing notifications
         socket.on('typing', (data) => {
             typingNotification.textContent = `${data} is typing...`;
         });
@@ -126,7 +145,6 @@
             typingNotification.textContent = '';
         });
 
-        // Send a new message to the server
         send.addEventListener('click', () => {
             const msg = { user: nickname, message: message.value };
             socket.emit('message', msg);
@@ -134,7 +152,6 @@
             socket.emit('stop typing');
         });
 
-        // Detect when the user is typing
         let typingTimeout;
         message.addEventListener('input', () => {
             clearTimeout(typingTimeout);
@@ -144,11 +161,31 @@
             }, 1000);
         });
 
-        // Add a message to the chat
+        imageInput.addEventListener('change', () => {
+            const file = imageInput.files[0];
+            const reader = new FileReader();
+            reader.onload = () => {
+                const msg = { user: nickname, image: reader.result };
+                socket.emit('message', msg);
+                imageInput.value = '';
+            };
+            reader.readAsDataURL(file);
+        });
+
         function addMessage(data) {
             const msg = document.createElement('div');
             msg.classList.add('chat-message');
-            msg.textContent = `${data.user}: ${data.message}`;
+            if (data.user === nickname) {
+                msg.classList.add('self');
+            }
+            if (data.message) {
+                msg.textContent = `${data.user}: ${data.message}`;
+            } else if (data.image) {
+                const img = document.createElement('img');
+                img.src = data.image;
+                img.style.maxWidth = '100%';
+                msg.appendChild(img);
+            }
             chat.appendChild(msg);
             chat.scrollTop = chat.scrollHeight;
         }

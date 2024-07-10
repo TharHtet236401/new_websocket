@@ -8,19 +8,30 @@ const server = http.createServer(app);
 const io = socketIo(server);
 
 mongoose.connect('mongodb://localhost/chat', {
+   
 });
 
 const messageSchema = new mongoose.Schema({
     user: String,
     message: String,
-    timestamp: { type: Date, default: Date.now },
+    timestamp: { type: Date, default: Date.now }
 });
 
 const Message = mongoose.model('Message', messageSchema);
 
 io.on('connection', async (socket) => {
-    console.log('New client connected');
+    
+    let person = "anonymous";
 
+    socket.on("person",data=>{
+        person = data;
+        socket.broadcast.emit("welcome", person + " joined the chat");
+    })
+
+    socket.on('disconnect', () => {
+        socket.broadcast.emit("bye", person + " Left Chat Room( testing) ");
+    });
+    
     // Send existing messages to the client
     try {
         const messages = await Message.find().sort({ timestamp: 1 }).exec();
@@ -29,6 +40,9 @@ io.on('connection', async (socket) => {
         console.error(err);
     }
 
+    
+
+    // Handle new message from the client
     socket.on('message', async (data) => {
         const newMessage = new Message(data);
         try {
@@ -39,9 +53,7 @@ io.on('connection', async (socket) => {
         }
     });
 
-    socket.on('disconnect', () => {
-        console.log('Client disconnected');
-    });
+ 
 });
 
 app.get('/', (req, res) => {

@@ -1,6 +1,7 @@
 #World Wide
 .DS_Store
 API.txt
+.env
 
 # Logs
 logs

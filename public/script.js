@@ -1,4 +1,3 @@
-// public/script.js
 const socket = io();
 const chat = document.getElementById('chat');
 const message = document.getElementById('message');
@@ -58,13 +57,31 @@ message.addEventListener('input', () => {
 
 imageInput.addEventListener('change', () => {
     const file = imageInput.files[0];
-    const reader = new FileReader();
-    reader.onload = () => {
-        const msg = { user: nickname, image: reader.result };
-        socket.emit('message', msg);
-        imageInput.value = '';
-    };
-    reader.readAsDataURL(file);
+    const formData = new FormData();
+    formData.append('image', file);
+
+    fetch('/upload', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('Failed to upload image');
+        }
+        return response.json();
+    })
+    .then(data => {
+        if (data.url) {
+            const msg = { user: nickname, image: data.url };
+            socket.emit('message', msg);
+        } else {
+            throw new Error('Image URL not received');
+        }
+    })
+    .catch(error => {
+        console.error('Error uploading image:', error);
+        alert('Failed to upload image');
+    });
 });
 
 function addMessage(data) {

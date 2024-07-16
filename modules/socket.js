@@ -1,4 +1,3 @@
-// modules/socket.js
 const socketIo = require('socket.io');
 const Message = require('../db/db');
 
@@ -28,10 +27,15 @@ function initSocket(server) {
 
         // Handle new message from the client
         socket.on('message', async (data) => {
+            
+            console.log('Received message data:', data); // Log the received data
+
+            const { user, message, image, video } = data;
             const newMessage = new Message({
                 user: data.user,
                 message: data.message || '',
-                image: data.image || ''
+                image: data.image || '',
+                video: data.video || 'helloworld' // Added video field
             });
             try {
                 await newMessage.save();

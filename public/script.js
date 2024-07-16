@@ -4,6 +4,7 @@ const chat = document.getElementById('chat');
 const message = document.getElementById('message');
 const send = document.getElementById('send');
 const imageInput = document.getElementById('image');
+const videoInput = document.getElementById('video'); 
 const typingNotification = document.getElementById('typing-notification');
 
 let nickname = prompt("Please enter your nickname");
@@ -61,8 +62,21 @@ imageInput.addEventListener('change', () => {
     const reader = new FileReader();
     reader.onload = () => {
         const msg = { user: nickname, image: reader.result };
+        console.log(msg);
         socket.emit('message', msg);
         imageInput.value = '';
+    };
+    reader.readAsDataURL(file);
+});
+
+videoInput.addEventListener('change', () => { // New video input event listener
+    const file = videoInput.files[0];
+    const reader = new FileReader();
+    reader.onload = () => {
+        const msg = { user: nickname, video: reader.result };
+        console.log(msg);
+        socket.emit('message', msg);
+        videoInput.value = '';
     };
     reader.readAsDataURL(file);
 });
@@ -80,6 +94,12 @@ function addMessage(data) {
         img.src = data.image;
         img.style.maxWidth = '100%';
         msg.appendChild(img);
+    } else if (data.video) {
+        const video = document.createElement('video');
+        video.src = data.video;
+        video.controls = true;
+        video.style.maxWidth = '100%';
+        msg.appendChild(video);
     }
     chat.appendChild(msg);
     chat.scrollTop = chat.scrollHeight;
